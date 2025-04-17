@@ -8,17 +8,28 @@ const connection = mysql.createConnection({
   password: "",
   database: "blog_db",
 });
+const protectedRoutes = ["/profile", "/dashboard"];
+
+function checkForProtectedRoutes(req, res, next) {
+  if (protectedRoutes.includes(req.url)) {
+    res.end("You have to be logeed in");
+  } else {
+    next();
+  }
+}
+//middleware functions
+app.use(checkForProtectedRoutes);
 
 //routes
 app.get("/", (req, res) => {
   res.render("home.ejs");
 });
 
-app.get("/dashboard", (req, res) => {
+app.get("/dashboard", checkForProtectedRoutes, (req, res) => {
   res.render("dashboard.ejs");
 });
 
-app.get("/login", (req, res) => {
+app.get("/login", checkForProtectedRoutes, (req, res) => {
   res.render("login.ejs");
 });
 
@@ -32,8 +43,7 @@ app.get("/posts", (req, res) => {
     if (error) {
       res.json(error);
     } else {
-      console.log(posts);
-      res.json(posts);
+      res.render("posts.ejs", { blogs: posts });
     }
   });
   //res.render("posts.ejs");
@@ -48,12 +58,11 @@ app.get("/newpost", (req, res) => {
 });
 
 app.post("/newpost", express.urlencoded({ extended: true }), (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   connection.query(
     `INSERT INTO posts (user_id,title,content)VALUES(2,'${req.body.title}','${req.body.content}')`,
     (err) => {
       if (err) {
-        res.status(504);
         res.json(err);
       } else {
         res.redirect("/posts");
